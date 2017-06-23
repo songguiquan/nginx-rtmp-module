@@ -564,7 +564,7 @@ ngx_rtmp_gop_postconfiguration(ngx_conf_t *cf)
 }
 
 ngx_int_t ngx_jitter_correct(ngx_rtmp_session_t *s, ngx_rtmp_header_t *hl,
-                                                        RtmpJitterAlgorithm ag)
+                                            ngx_rtmp_frame_t *frame, RtmpJitterAlgorithm ag)
 {
     ngx_int_t                   ret = NGX_OK;
     long long                   time;
@@ -581,16 +581,16 @@ ngx_int_t ngx_jitter_correct(ngx_rtmp_session_t *s, ngx_rtmp_header_t *hl,
 
         if(ag == RtmpJitterAlgorithmZERO) {
             if(s->last_pkt_correct_time == -1) {
-                s->last_pkt_correct_time = s->last_pkt_time;
+                s->last_pkt_correct_time = frame->hdr.timestamp;
             }
 
-            hl->timestamp = s->last_pkt_time;
+            hl->timestamp = frame->hdr.timestamp;
             hl->timestamp -= s->last_pkt_correct_time;
             return ret;
         }
     }
 
-    time = s->last_pkt_time;
+    time = frame->hdr.timestamp;
     delta = time - s->last_pkt_time;
     delta1 = 0 - lacf->sync;
     if (delta < delta1|| delta > (long long )lacf->sync) {

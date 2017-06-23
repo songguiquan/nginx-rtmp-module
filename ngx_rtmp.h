@@ -538,7 +538,7 @@ typedef enum
 ngx_int_t ngx_rtmp_gop_cache(ngx_rtmp_session_t *s, ngx_rtmp_frame_t *frame);
 ngx_int_t ngx_rtmp_gop_send(ngx_rtmp_session_t *s, ngx_rtmp_session_t *ss);
 ngx_int_t ngx_jitter_correct(ngx_rtmp_session_t *s, ngx_rtmp_header_t *hl,
-                                                        RtmpJitterAlgorithm ag);
+                                  ngx_rtmp_frame_t *frame, RtmpJitterAlgorithm ag);
 ngx_int_t ngx_rtmp_time_jitter_string2int(ngx_str_t str);
 
 
