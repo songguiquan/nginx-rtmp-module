@@ -305,6 +305,8 @@ typedef struct {
     unsigned                out_buffer:1;
     size_t                  out_queue;
     size_t                  out_cork;
+    ngx_msec_t              last_pkt_time;
+    long long               last_pkt_correct_time;
     ngx_rtmp_frame_t       *out[0];
 } ngx_rtmp_session_t;
 
@@ -525,8 +527,21 @@ ngx_int_t ngx_rtmp_send_message(ngx_rtmp_session_t *s, ngx_rtmp_frame_t *out,
         ngx_uint_t priority);
 
 /* GOP */
+
+typedef enum
+{
+    RtmpJitterAlgorithmFULL = 0x01,
+    RtmpJitterAlgorithmZERO,
+    RtmpJitterAlgorithmOFF
+}RtmpJitterAlgorithm;
+
 ngx_int_t ngx_rtmp_gop_cache(ngx_rtmp_session_t *s, ngx_rtmp_frame_t *frame);
 ngx_int_t ngx_rtmp_gop_send(ngx_rtmp_session_t *s, ngx_rtmp_session_t *ss);
+ngx_int_t ngx_jitter_correct(ngx_rtmp_session_t *s, ngx_rtmp_header_t *hl,
+                                                        RtmpJitterAlgorithm ag);
+ngx_int_t ngx_rtmp_time_jitter_string2int(ngx_str_t str);
+
+
 
 /* RTMP Relation server */
 ngx_rtmp_addr_conf_t *ngx_rtmp_get_addr_conf_by_listening(ngx_listening_t *ls,
@@ -658,6 +673,4 @@ extern ngx_thread_volatile ngx_event_t     *ngx_rtmp_init_queue;
 
 extern ngx_uint_t                           ngx_rtmp_max_module;
 extern ngx_module_t                         ngx_rtmp_core_module;
-
-
 #endif /* _NGX_RTMP_H_INCLUDED_ */

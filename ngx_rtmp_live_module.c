@@ -108,6 +108,20 @@ static ngx_command_t  ngx_rtmp_live_commands[] = {
       offsetof(ngx_rtmp_live_app_conf_t, idle_timeout),
       NULL },
 
+    { ngx_string("default_frame_time_ms"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_RTMP_APP_CONF_OFFSET,
+      offsetof(ngx_rtmp_live_app_conf_t, default_frame_time_ms),
+      NULL },
+
+    { ngx_string("correct_timestamp_method"),
+      NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_RTMP_APP_CONF_OFFSET,
+      offsetof(ngx_rtmp_live_app_conf_t, correct_timestamp_method),
+      NULL },
+
       ngx_null_command
 };
 
@@ -161,6 +175,7 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
     lacf->publish_notify = NGX_CONF_UNSET;
     lacf->play_restart = NGX_CONF_UNSET;
     lacf->idle_streams = NGX_CONF_UNSET;
+    lacf->default_frame_time_ms = NGX_CONF_UNSET_MSEC;
 
     return lacf;
 }
@@ -183,6 +198,10 @@ ngx_rtmp_live_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->publish_notify, prev->publish_notify, 0);
     ngx_conf_merge_value(conf->play_restart, prev->play_restart, 0);
     ngx_conf_merge_value(conf->idle_streams, prev->idle_streams, 1);
+    ngx_conf_merge_msec_value(conf->default_frame_time_ms,
+                                prev->default_frame_time_ms, 10);
+    ngx_conf_merge_str_value(conf->correct_timestamp_method,
+                                        prev->correct_timestamp_method, "full");
 
     conf->pool = ngx_create_pool(4096, &cf->cycle->new_log);
     if (conf->pool == NULL) {
@@ -743,6 +762,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    type_s, h->timestamp);
 
     s->current_time = h->timestamp;
+    s->last_pkt_time = h->timestamp;
 
     peers = 0;
     header = NULL;
@@ -848,6 +868,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
         ss = pctx->session;
         cs = &pctx->cs[csidx];
+        ss->last_pkt_time = s->last_pkt_time;
 
         /* send gop cache is set */
         switch (ngx_rtmp_gop_send(s, ss)) {

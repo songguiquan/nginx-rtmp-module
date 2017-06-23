@@ -562,3 +562,58 @@ ngx_rtmp_gop_postconfiguration(ngx_conf_t *cf)
 
     return NGX_OK;
 }
+
+ngx_int_t ngx_jitter_correct(ngx_rtmp_session_t *s, ngx_rtmp_header_t *hl,
+                                                        RtmpJitterAlgorithm ag)
+{
+    ngx_int_t                   ret = NGX_OK;
+    long long                   time;
+    long long                   delta;
+    long long                   delta1;
+    ngx_rtmp_live_app_conf_t   *lacf;
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+
+    if(ag != RtmpJitterAlgorithmFULL) {
+        if(ag == RtmpJitterAlgorithmOFF) {
+            return ret;
+        }
+
+        if(ag == RtmpJitterAlgorithmZERO) {
+            if(s->last_pkt_correct_time == -1) {
+                s->last_pkt_correct_time = s->last_pkt_time;
+            }
+
+            hl->timestamp = s->last_pkt_time;
+            hl->timestamp -= s->last_pkt_correct_time;
+            return ret;
+        }
+    }
+
+    time = s->last_pkt_time;
+    delta = time - s->last_pkt_time;
+    delta1 = 0 - lacf->sync;
+    if (delta < delta1|| delta > (long long )lacf->sync) {
+        delta = lacf->default_frame_time_ms;
+    }
+
+    s->last_pkt_correct_time =
+    (s->last_pkt_correct_time + delta) > 0 ? (s->last_pkt_correct_time + delta) : 0;
+
+    hl->timestamp = s->last_pkt_correct_time;
+    s->last_pkt_time = time;
+    return ret;
+}
+
+
+ngx_int_t ngx_rtmp_time_jitter_string2int(ngx_str_t str)
+{
+    if (ngx_strncmp(str.data, "full", str.len) == 0) {
+        return RtmpJitterAlgorithmFULL;
+    } else if (ngx_strncmp(str.data, "zero", str.len) == 0) {
+        return RtmpJitterAlgorithmZERO;
+    } else {
+        return RtmpJitterAlgorithmOFF;
+    }
+}
+

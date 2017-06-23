@@ -9,6 +9,7 @@
 #include "ngx_rtmp.h"
 #include "ngx_rtmp_amf.h"
 #include "ngx_rbuf.h"
+#include "ngx_rtmp_live_module.h"
 
 
 static void ngx_rtmp_recv(ngx_event_t *rev);
@@ -490,6 +491,14 @@ ngx_rtmp_recv(ngx_event_t *rev)
 static ngx_flag_t
 ngx_rtmp_relative_timestamp(ngx_rtmp_session_t *s, ngx_rtmp_header_t *lh)
 {
+    ngx_rtmp_live_app_conf_t        *lacf;
+    RtmpJitterAlgorithm              ag;
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+
+    ag = ngx_rtmp_time_jitter_string2int(lacf->correct_timestamp_method);
+
+    ngx_jitter_correct(s, lh, ag);
+
     return 0;
 }
 
